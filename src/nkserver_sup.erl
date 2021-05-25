@@ -39,7 +39,7 @@ start_link() ->
 %%            start => {nkserver_node, start_link, []}
 %%        }
     ],
-    supervisor:start_link({local, ?MODULE}, ?MODULE, 
+    supervisor:start_link({local, ?MODULE}, ?MODULE,
                             {{one_for_one, 10, 60}, ChildsSpec}).
 
 %% @private

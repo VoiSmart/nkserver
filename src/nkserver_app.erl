@@ -37,7 +37,7 @@
 %% ===================================================================
 
 %% @doc Starts NkSERVER stand alone.
--spec start() -> 
+-spec start() ->
     ok | {error, Reason::term()}.
 
 start() ->
@@ -45,7 +45,7 @@ start() ->
 
 
 %% @doc Starts NkSERVER stand alone.
--spec start(permanent|transient|temporary) -> 
+-spec start(permanent|transient|temporary) ->
     ok | {error, Reason::term()}.
 
 start(Type) ->
@@ -59,6 +59,7 @@ start(Type) ->
 
 %% @doc
 start(_Type, _Args) ->
+    pg:start_link(),
     Syntax = #{
         log_path => binary,
         save_dispatcher_source => boolean,
