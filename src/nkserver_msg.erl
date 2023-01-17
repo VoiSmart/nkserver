@@ -24,6 +24,7 @@
 -export([is_msg/2, msg/2]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
 
 %% ===================================================================
@@ -64,14 +65,14 @@ msg(SrvId, Msg) ->
                 {Code, Reason} when is_binary(Code), is_binary(Reason) ->
                     {Code, Reason};
                 {Code, _} when is_atom(Code); is_binary(Code) ->
-                    lager:info("NkSERVER unknown msg: ~p (~p)", [Msg, SrvId]),
+                    ?I("NkSERVER unknown msg: ~p (~p)", [Msg, SrvId]),
                     {to_bin(Code), <<>>};
                 Code when is_atom(Code); is_binary(Code) ->
-                    lager:info("NkSERVER unknown msg: ~p (~p)", [Msg, SrvId]),
+                    ?I("NkSERVER unknown msg: ~p (~p)", [Msg, SrvId]),
                     {to_bin(Code), <<>>};
                 Other ->
                     Ref = erlang:phash2(make_ref()) rem 10000,
-                    lager:notice("NkSERVER unknown internal msg (~p): ~p (~p)", [Ref, Other, SrvId]),
+                    ?N("NkSERVER unknown internal msg (~p): ~p (~p)", [Ref, Other, SrvId]),
                     {<<"internal_error">>, get_msg_fmt("Internal msg (~p)", [Ref])}
             end
     end.
@@ -85,7 +86,7 @@ get_msg_code(Tuple) when is_tuple(Tuple) ->
     get_msg_code(element(1, Tuple));
 
 get_msg_code(Error) ->
-    lager:notice("Invalid format in API reason: ~p", [Error]),
+    ?N("Invalid format in API reason: ~p", [Error]),
     <<"internal_error">>.
 
 
@@ -93,7 +94,7 @@ get_msg_code(Error) ->
 get_msg_fmt(Fmt, List) ->
     case catch io_lib:format(Fmt, List) of
         {'EXIT', _} ->
-            lager:notice("Invalid format API reason: ~p, ~p", [Fmt, List]),
+            ?N("Invalid format API reason: ~p, ~p", [Fmt, List]),
             <<>>;
         Val ->
             list_to_binary(Val)

@@ -32,6 +32,7 @@
 -export([parse_transform/2,  compile/1, module_loaded/1]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
 
 %% ===================================================================
@@ -95,7 +96,7 @@ compile(Service) ->
 module_loaded(Id) ->
     case whereis(Id) of
         Pid when is_pid(Pid) ->
-            lager:notice("NkSERVER: Module ~s reloaded, recompiling dispatcher", [Id]),
+            ?N("NkSERVER: Module ~s reloaded, recompiling dispatcher", [Id]),
             nkserver_srv:recompile(Pid),
             ok;
         undefined ->
@@ -139,7 +140,7 @@ maybe_generate_mod(#{id:=Id}) ->
             ok;
         false when Exists ->
             % Module exists, but has not been compiled with parse transform
-            lager:error("Module ~p compiled without required parse transform. "
+            ?E("Module ~p compiled without required parse transform. "
                         "Use -include_lib(\"nkserver/include/nkserver_callback.hrl\").",
                         [Id]),
             {error, {invalid_callback_module, Id}};
@@ -158,7 +159,7 @@ maybe_generate_mod(#{id:=Id}) ->
 
 %% @private
 make_module(#{id:=Id}=Service) ->
-    ?SRV_LOG(debug, "starting dispatcher recompilation...", [], Service),
+    ?D("starting dispatcher recompilation...", []),
     ServiceKeys = [
         id, class, uuid, hash, timestamp, plugins, expanded_plugins,
         config, use_master, master_min_nodes, config_cache
@@ -175,12 +176,12 @@ make_module(#{id:=Id}=Service) ->
     case nkserver_app:get(save_dispatcher_source) of
         true ->
             Path = nkserver_app:get(log_path),
-            ?SRV_LOG(debug, "saving to disk...", [], Service),
+            ?D("saving to disk...", []),
             ok = nklib_code:write(DispatcherMod, ModForms, Path);
         false ->
             ok
     end,
-    ?SRV_LOG(info, "dispatcher compilation completed", [], Service),
+    ?I("dispatcher compilation completed", []),
     {DispatcherMod, ModForms}.
 
 

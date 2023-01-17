@@ -30,6 +30,7 @@
 -export([handle_user_call/5]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
 
 %% ===================================================================
@@ -122,7 +123,6 @@ parse_config(Config, Syntax) ->
 %%        {Res, St}
 %%    catch
 %%        Class:CError:Trace ->
-%%            lager:notice("NkSERVER LUERL ~s (~s, ~s:~s(~p)) API Error ~p:~p ~p",
 %%                [SrvId, PackageId, Mod, Fun, Args, Class, CError, Trace]),
 %%            {[nil], St}
 %%    end.
@@ -206,7 +206,7 @@ handle_user_call(Fun, Args, State, PosSrvId, PosUserState) ->
         continue ->
             continue;
         Other ->
-            lager:warning("invalid response for ~p:~p(~p): ~p", [SrvId, Fun, Args, Other]),
+            ?W("invalid response for ~p:~p(~p): ~p", [SrvId, Fun, Args, Other]),
             error(invalid_handle_response)
     end.
 

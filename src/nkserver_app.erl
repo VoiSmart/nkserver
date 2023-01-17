@@ -28,6 +28,7 @@
 -export([get/1, get/2, put/2, del/1]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
 -define(APP, nkserver).
 -compile({no_auto_import, [get/1, put/2]}).
@@ -77,13 +78,13 @@ start(_Type, _Args) ->
             % register_packages(),
             %CallbacksHttpUrl = get(callbacksHttpUrl),
             %put(callbacksHttpUrl, nklib_url:norm(CallbacksHttpUrl)),
-            lager:info("NkSERVER v~s has started.", [Vsn]),
+            ?I("NkSERVER v~s has started.", [Vsn]),
             % Dummy package for tests
             nkserver_util:register_package_class(<<"Service">>, nkserver),
             ?MODULE:put(nkserver_start_time, nklib_util:l_timestamp()),
             {ok, Pid};
         {error, Error} ->
-            lager:error("Error parsing config: ~p", [Error]),
+            ?E("Error parsing config: ~p", [Error]),
             error(Error)
     end.
 

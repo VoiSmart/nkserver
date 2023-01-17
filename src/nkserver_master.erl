@@ -34,11 +34,8 @@
 -export([strategy_min_nodes/1]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
--define(LLOG(Type, Txt, Args, State),
-    lager:Type("NkSERVER Master (~s) "++Txt, [State#state.id|Args])).
-
--define(LLOG(Type, Txt, Args), lager:Type("NkSERVER Master "++Txt, Args)).
 
 -define(CHECK_TIME, 5000).
 
@@ -78,7 +75,7 @@ call_leader(SrvId, Msg, Timeout, Tries) when Tries > 0 ->
         Pid when is_pid(Pid) ->
             case nklib_util:call2(Pid, Msg, Timeout) of
                 process_not_found ->
-                    ?LLOG(notice, "master for service '~s' not available, retrying...", [SrvId]),
+                    ?N("master for service '~s' not available, retrying...", [SrvId]),
                     timer:sleep(500),
                     call_leader(SrvId, Msg, Timeout, Tries-1);
                 Other ->
@@ -89,7 +86,7 @@ call_leader(SrvId, Msg, Timeout, Tries) when Tries > 0 ->
                 undefined ->
                     {error, service_not_started};
                 _ ->
-                    ?LLOG(notice, "master for service '~s' not available, retrying...", [SrvId]),
+                    ?N("master for service '~s' not available, retrying...", [SrvId]),
                     timer:sleep(500),
                     call_leader(SrvId, Msg, Timeout, Tries-1)
             end
@@ -136,7 +133,7 @@ init([SrvId]) ->
         leader_pid = undefined,
         user_state = #{}
     },
-    ?LLOG(notice, "master started (~p)", [self()], State),
+    ?N("master started (~p)", [self()]),
     {ok, UserState} = ?CALL_SRV(SrvId, srv_master_init, [SrvId, #{}]),
     self() ! nkserver_timed_check_leader,
     {ok, State#state{user_state = UserState}}.
@@ -150,7 +147,7 @@ init([SrvId]) ->
 handle_call(Msg, From, State) ->
     case handle(srv_master_handle_call, [Msg, From], State) of
         continue ->
-            ?LLOG(error, "received unexpected call ~p", [Msg], State),
+            ?E("received unexpected call ~p", [Msg]),
             {noreply, State};
         Other ->
             Other
@@ -164,7 +161,7 @@ handle_call(Msg, From, State) ->
 handle_cast(Msg, State) ->
     case handle(srv_master_handle_cast, [Msg], State) of
         continue ->
-            ?LLOG(error, "received unexpected cast ~p", [Msg], State),
+            ?E("received unexpected cast ~p", [Msg]),
             {noreply, State};
         Other ->
             Other
@@ -186,7 +183,7 @@ handle_info(nkserver_timed_check_leader, State) ->
 
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, #state{leader_pid=Pid}=State) ->
     #state{is_leader=false} = State,
-    ?LLOG(warning, "current leader (~p) is down!", [Pid], State),
+    ?W("current leader (~p) is down!", [Pid]),
     Time = nklib_util:rand(1, 1000),
     timer:sleep(Time),
     case check_leader(State) of
@@ -199,7 +196,7 @@ handle_info({'DOWN', _Ref, process, Pid, _Reason}, #state{leader_pid=Pid}=State)
 handle_info(Msg, State) ->
     case handle(srv_master_handle_info, [Msg], State) of
         continue ->
-            ?LLOG(notice, "received unexpected info ~p", [Msg], State),
+            ?N("received unexpected info ~p", [Msg]),
             {noreply, State};
         Other ->
             Other
@@ -224,7 +221,7 @@ code_change(OldVsn, #state{id=SrvId, user_state=UserState}=State, Extra) ->
     ok.
 
 terminate(Reason, State) ->
-    ?LLOG(notice, "is stopped (~p)", [Reason], State),
+    ?N("is stopped (~p)", [Reason]),
     catch handle(srv_master_terminate, [Reason], State),
     ok.
 
@@ -247,7 +244,7 @@ check_leader(State) ->
 find_leader(#state{id=SrvId, leader_pid=undefined}=State) ->
     case get_leader_pid(SrvId) of
         Pid when is_pid(Pid) ->
-            ?LLOG(notice, "new leader is ~s (~p) (me:~p)", [node(Pid), Pid, self()], State),
+            ?N("new leader is ~s (~p) (me:~p)", [node(Pid), Pid, self()]),
             monitor(process, Pid),
             {ok, State#state{is_leader=false, leader_pid=Pid}};
         undefined ->
@@ -266,8 +263,8 @@ find_leader(#state{id=SrvId, is_leader=true}=State) ->
         Pid when Pid==self() ->
             {ok, State};
         Other ->
-            ?LLOG(warning, "we were leader but is NOT the registered leader: ~p (me:~p)",
-                  [Other, self()], State),
+            ?W("we were leader but is NOT the registered leader: ~p (me:~p)",
+                  [Other, self()]),
             {error, other_is_leader}
     end;
 
@@ -279,8 +276,8 @@ find_leader(#state{id=SrvId, leader_pid=Pid}=State) ->
             ok;
         Other ->
             % Wait for old leader to fail and detect 'DOWN'
-            ?LLOG(warning, "my old leader (~p) is NOT the registered leader (~p)"
-                  " (me:~p), waiting", [Pid, Other, self()], State)
+            ?W("my old leader (~p) is NOT the registered leader (~p)"
+                  " (me:~p), waiting", [Pid, Other, self()])
     end,
     {ok, State}.
 
@@ -293,7 +290,6 @@ global_name(SrvId) ->
 %% @private
 %% Will call the service's functions
 handle(Fun, Args, #state{id=SrvId, user_state=UserState}=State) ->
-    % lager:error("NKLOG CALLING  ~p ~p ~p ", [SrvId, Fun, Args++[SrvId, UserState]]),
     case ?CALL_SRV(SrvId, Fun, Args++[SrvId, UserState]) of
         {reply, Reply, UserState2} ->
             {reply, Reply, State#state{user_state=UserState2}};
@@ -312,7 +308,7 @@ handle(Fun, Args, #state{id=SrvId, user_state=UserState}=State) ->
         continue ->
             continue;
         Other ->
-            ?LLOG(warning, "invalid response for ~p(~p): ~p", [Fun, Args, Other], State),
+            ?W("invalid response for ~p(~p): ~p", [Fun, Args, Other]),
             error(invalid_handle_response)
     end.
 
@@ -328,15 +324,15 @@ strategy_min_nodes(SrvId) ->
         true ->
             case global:register_name(global_name(SrvId), self()) of
                 yes ->
-                    ?LLOG(notice, "WE are the new leader (~s) (~p)", [SrvId, self()]),
+                    ?N("WE are the new leader (~s) (~p)", [SrvId, self()]),
                     yes;
                 no ->
-                    ?LLOG(notice, "could not register as leader (~s), waiting (me:~p)", [SrvId, self()]),
+                    ?N("could not register as leader (~s), waiting (me:~p)", [SrvId, self()]),
                     % Wait for next iteration
                     no
             end;
         false ->
-            ?LLOG(warning, "NOT TRYING to become leader, we are in split-brain (~s), (~p/~p nodes)",
+            ?W("NOT TRYING to become leader, we are in split-brain (~s), (~p/~p nodes)",
                  [SrvId, Nodes, MinNodes]),
             no
     end.

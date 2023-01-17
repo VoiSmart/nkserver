@@ -24,6 +24,7 @@
 -export([config/2, get_plugin_mod/1, get_callback_mod/1]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
 %% ===================================================================
 %% Public
@@ -103,7 +104,7 @@ config_plugins(Service) ->
     end,
     % Plugins2 is the expanded list of plugins, first bottom, last top (Id)
     Plugins2 = expand_plugins(Id, [PkgMod|Plugins]),
-    ?SRV_LOG(debug, "starting configuration", [], Service),
+    ?D("starting configuration", []),
     Meta = nkserver_util:get_package_class_meta(Class),
     Service2 = case Meta of
         #{use_master:=true} ->
@@ -129,7 +130,7 @@ config_plugins([Id|Rest], #{id:=Id}=Service) ->
 
 config_plugins([PluginId|Rest], #{id:=Id, config:=Config}=Service) ->
     Mod = get_plugin_mod(PluginId),
-    ?SRV_LOG(debug, "calling config for ~s (~s)", [Id, Mod], Service),
+    ?D("calling config for ~s (~s)", [Id, Mod]),
     Config2 = case nklib_util:apply(Mod, plugin_config, [Id, Config, Service]) of
         ok ->
             Config;
@@ -170,7 +171,7 @@ config_cache([Id|Rest], #{id:=Id}=Service, CacheAcc, CBsAcc) ->
 
 config_cache([PluginId|Rest], #{id:=Id, config:=Config}=Service, CacheAcc, CBsAcc) ->
     Mod = get_plugin_mod(PluginId),
-    ?SRV_LOG(debug, "calling config cache for ~s (~s)", [Id, Mod], Service),
+    ?D("calling config cache for ~s (~s)", [Id, Mod]),
     {CacheAcc2, CBsAcc2} = case nklib_util:apply(Mod, plugin_cache, [Id, Config, Service]) of
         ok ->
             {CacheAcc, CBsAcc};
@@ -383,7 +384,7 @@ save_uuid(Path, UUID, Spec) ->
         ok ->
             UUID;
         Error ->
-            lager:warning("NkSERVER: Could not write file ~s: ~p", [Path, Error]),
+            ?W("NkSERVER: Could not write file ~s: ~p", [Path, Error]),
             UUID
     end.
 

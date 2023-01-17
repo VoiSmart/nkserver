@@ -13,10 +13,6 @@
 %% ===================================================================
 
 
--define(SRV_LOG(Type, Txt, Args, Package),
-    lager:Type("NkSERVER srv '~s' (~s) "++Txt, [maps:get(id, Package), maps:get(class, Package) | Args])).
-
-
 %% The callback module should have generated this function after parse transform
 -define(CALL_SRV(Id, Fun, Args), apply(Id, nkserver_callback, [Fun, Args])).
 

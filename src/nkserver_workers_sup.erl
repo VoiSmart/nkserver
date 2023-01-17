@@ -28,6 +28,7 @@
 -export([update_child/3, update_child2/3, update_child_multi/3]).
 
 -include("nkserver.hrl").
+-include_lib("nklib/include/nklib.hrl").
 
 
 
@@ -214,12 +215,12 @@ update_child_multi(SrvId, SpecList, Opts) ->
     lists:foreach(
         fun(ChildId) ->
             remove_child(Pid, ChildId),
-            lager:debug("NkSERVER child ~p (key ~p) stopped", [ChildId, ChildKey])
+            ?D("NkSERVER child ~p (key ~p) stopped", [ChildId, ChildKey])
         end,
         ToStop),
     case update_child_multi(Pid, SpecList, Opts, not_updated) of
         {error, Error} ->
-            lager:info("NkSERVER removing all childs for ~p", [ChildKey]),
+            ?I("NkSERVER removing all childs for ~p", [ChildKey]),
             lists:foreach(
                 fun(ChildId) -> remove_child(Pid, ChildId) end,
                 OldChildIds++NewChildIds),

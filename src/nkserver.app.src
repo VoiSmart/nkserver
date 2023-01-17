@@ -9,7 +9,6 @@
         stdlib,
         crypto,
         ssl,
-        lager,
         nklib
     ]},
     {env, [
