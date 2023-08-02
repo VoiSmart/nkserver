@@ -5,4 +5,3 @@ ebin
 _build
 /nkserver.version
 /.rebar3
-rebar.lock
